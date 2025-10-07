@@ -22,8 +22,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files if directory exists
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    logger.info("Static files mounted at /static")
+else:
+    logger.warning("Static directory not found, skipping static file mounting")
 
 # Initialize templates
 templates = Jinja2Templates(directory="templates")
