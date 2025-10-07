@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .status.connected {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status.disconnected {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .question-form {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .response-section {
+            margin-top: 30px;
+        }
+        
+        .response-box {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-color: #feb2b2;
+        }
+        
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ app_name }}</h1>
+        <p class="subtitle">Ask me anything using GPT-4o-mini</p>
+        
+        <div class="status {% if openai_configured %}connected{% else %}disconnected{% endif %}">
+            {% if openai_configured %}
+                ✅ OpenAI API Connected
+            {% else %}
+                ❌ OpenAI API Not Configured
+            {% endif %}
+        </div>
+        
+        <div class="question-form">
+            <label for="question">Your Question:</label>
+            <input type="text" id="question" placeholder="Ask anything..." />
+            <button onclick="askQuestion()" id="askBtn">Ask Question</button>
+        </div>
+        
+        <div class="response-section">
+            <label>Response:</label>
+            <div class="response-box" id="response">Ask a question to get started!</div>
+        </div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const responseBox = document.getElementById('response');
+            const askBtn = document.getElementById('askBtn');
+            
+            const question = questionInput.value.trim();
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+            
+            // Show loading state
+            askBtn.disabled = true;
+            askBtn.innerHTML = '<span class="spinner"></span>Thinking...';
+            responseBox.className = 'response-box loading';
+            responseBox.textContent = 'Processing your question...';
+            
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    responseBox.className = 'response-box';
+                    responseBox.textContent = data.answer;
+                } else {
+                    responseBox.className = 'response-box error';
+                    responseBox.textContent = `Error: ${data.detail || 'Something went wrong'}`;
+                }
+            } catch (error) {
+                responseBox.className = 'response-box error';
+                responseBox.textContent = `Error: ${error.message}`;
+            } finally {
+                // Reset button
+                askBtn.disabled = false;
+                askBtn.innerHTML = 'Ask Question';
+            }
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
