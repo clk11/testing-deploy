@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
@@ -20,6 +21,9 @@ app = FastAPI(
     description="A FastAPI project with OpenAI GPT-4o-mini integration",
     version="1.0.0"
 )
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize templates
 templates = Jinja2Templates(directory="templates")
